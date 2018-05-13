@@ -17,6 +17,8 @@
 #define ERRACCNOEXIST  6
 #define ERRPASSWD      7
 #define ERROLDPSWD     8
+#define ERRFILEOPT     9
+#define ERRBKNOEXIST   10
 
 typedef struct _nwbs_errhandler {
 	void (*errsuccess_handler)(int errorno);

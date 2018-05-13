@@ -50,15 +50,31 @@ void nwbs_errdefaulthandler(int errorno)
 {
 	switch (errorno) {
 		case ERRSUCCESS:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRSERVER:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRSEND:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRRECV:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRBREAK:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRACCEXIST:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRPASSWD:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERROLDPSWD:
+			printf("%s\n", nwbs_error());
+			break;
 		case ERRACCNOEXIST:
-			printf("error default handler\n");
+			printf("%s\n", nwbs_error());
 			break;
 		default:
 			printf("不知道的错误类型");
@@ -156,7 +172,7 @@ int nwbs_exechandler(int errorno)
 			return 0;
 		case ERRBREAK:
 			nwbs_errhandler.errbreak_handler(errorno);
-			return 0;
+			exit(-1);
 		case ERRACCEXIST:
 			nwbs_errhandler.erraccexist_handler(errorno);
 			return 0;

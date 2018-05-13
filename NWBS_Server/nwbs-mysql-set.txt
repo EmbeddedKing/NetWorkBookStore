@@ -1,0 +1,24 @@
+create table book_info(
+booknum INT AUTO_INCREMENT,
+bookname CHAR(100) NOT NULL,
+bookauthor CHAR(50) NOT NULL,
+bookfilename CHAR(100) NOT NULL,
+bookpath CHAR(200) NOT NULL,
+PRIMARY KEY (booknum)
+)DEFAULT CHARSET=utf8;
+
+create table user_info(
+username CHAR(20) NOT NULL,
+useraccount CHAR(20) NOT NULL,
+userpasswd CHAR(20) NOT NULL,
+PRIMARY KEY (useraccount)
+)DEFAULT CHARSET=utf8;
+
+/* 插入记录 */
+insert into book_info values(1, "红玫瑰与白玫瑰", "张爱玲", "books/hmgybmg.txt");
+
+/* 增加表字段 */
+drop table book_info add bookfilename char(100) NOT NULL;
+
+/* 删除表字段 */
+alter table book_info drop column bookfilename;

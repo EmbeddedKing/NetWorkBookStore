@@ -21,13 +21,13 @@ char* nwbs_error()
 {
 	switch (nwbs_geterrno()) {
 		case ERRSUCCESS:
-			return "成功";
+			return "成功\n";
 		case ERRSQLINIT:
-			return "数据库初始化失败";
+			return "数据库初始化失败\n";
 		case ERRSQLQUERY:
-			return "数据库命令执行失败";
+			return "数据库命令执行失败\n";
 		case ERRSEND:
-			return "发送协议包失败";
+			return "发送协议包失败\n";
 	}
 }
 

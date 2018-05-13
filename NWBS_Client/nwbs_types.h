@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <mysql/mysql.h>
 #include <termios.h>
-
+#include <pthread.h>
 
 /* 传送的buf大小 */
 #define BUF_SIZE 200
@@ -23,18 +23,34 @@ typedef enum {
 	SEREXIST,
 	SERNOEXIST,
 	SERERRPSWD,
+	SERLISTEND,
+	SERDOWNEND,
 	CLISUCCESS,
 	CLISIGNIN,
 	CLISIGNUP,
 	CLICHPSWD,
+	CLIBOOKLIST,
+	CLIBOOKDOWN,
+	CLIBOOKINFO,
+	CLIBOOKUP,
 	CLIEXIT
 }nwbs_opt_t;
 
+/**
+ * 该结构体用来储存用户信息
+ */
 typedef struct _nwbs_user {
 	char username[20];
 	char useraccount[20];
 	char userpasswd[20];
 }nwbs_user_t;
+
+typedef struct _nwbs_book {
+	int  booknum;
+	char bookname[100];
+	char bookauthor[50];
+	char bookfilename[100];
+}nwbs_book_t;
 
 typedef struct _nwbs_chpswd {
 	char useraccount[20];
@@ -47,10 +63,18 @@ typedef struct _nwbs_curuser {
 	char signinaccount[20];
 }nwbs_curuser_t;
 
+typedef struct _nwbs_bookdown {
+	int  booknum;
+	int  bookdatasize;
+	char bookbuf[BUF_SIZE];
+}nwbs_bookdown_t;
+
 typedef struct _nwbs_protocol {
 	nwbs_opt_t proto_opt;
 	nwbs_user_t proto_user;
 	nwbs_chpswd_t proto_chpswd;
+	nwbs_book_t proto_book;
+	nwbs_bookdown_t proto_bookdown;
 }nwbs_proto_t;
 
 #endif

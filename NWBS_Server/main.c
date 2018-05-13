@@ -1,8 +1,18 @@
 #include "nwbs_types.h"
 #include "nwbs_handler.h"
 #include "nwbs_errno.h"
+#include "nwbs_lib.h"
 
-int socket_init(int *sockfd, const char *ip, unsigned short port);
+/**
+ * 当前使用数据库信息
+ */
+nwbs_dbinfo_t ser_dbinfo = {
+	.dbhost   = "127.0.0.1",
+	.dbuser   = "root",
+	.dbpasswd = "123",
+	.dbport   = 0,
+	.dbname   = "NWBS"
+};
 
 int main(int argc, char const *argv[])
 {
@@ -33,7 +43,7 @@ int main(int argc, char const *argv[])
 	struct sockaddr_in con_addr;
 	memset(&con_addr, 0, sizeof(struct sockaddr_in));
 	socklen_t con_addrlen = sizeof(struct sockaddr_in);
-	
+
 	/* 用来接收客户端传过来的数据 */
 	nwbs_proto_t cli_msg, ser_msg;
 	while (1)
@@ -57,13 +67,10 @@ int main(int argc, char const *argv[])
 			{
 				memset(&cli_msg, 0, sizeof(nwbs_proto_t));
 				num = recv(con_sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
-				if (num < 0)
-				{
+				if (num < 0) {
 					perror("recv");
 					return -1;
-				}
-				else if(num == 0)
-				{
+				} else if(num == 0) {
 					return 0;
 				}
 				/* 传入套接字, 处理客户端发过来的消息 */
@@ -75,40 +82,6 @@ int main(int argc, char const *argv[])
 		}
 	}
 	return 0;
-}
-
-int socket_init(int *sockfd, const char *ip, unsigned short port)
-{
-	/* 初始化套接字 */
-	(*sockfd) = socket(AF_INET, SOCK_STREAM, 0);
-	if ((*sockfd) < 0) {
-		perror("lis_sockfd socket");
-		return -1;
-	}
-
-	/* ser_addr 服务器的IP地址 */
-	struct sockaddr_in ser_addr;
-	memset(&ser_addr, 0, sizeof(struct sockaddr_in));
-	ser_addr.sin_family = AF_INET;
-	ser_addr.sin_port = htons(port);
-	ser_addr.sin_addr.s_addr = inet_addr(ip);
-	
-	/* ser_addrlen 服务器地址的长度 */
-	socklen_t ser_addrlen = sizeof(struct sockaddr_in);
-	int ret;
-	/* 绑定端口 */
-	ret = bind((*sockfd), (struct sockaddr *)&ser_addr, ser_addrlen);
-	if (ret < 0) {
-		perror("bind");
-		return -1;
-	}
-
-	/* 开启端口监听 */
-	ret = listen((*sockfd), 20);
-	if (ret < 0) {
-		perror("listen");
-		return -1;
-	}
 }
 
 void *thread_checkerror(void *arg)
