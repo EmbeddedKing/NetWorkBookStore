@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -16,6 +17,7 @@
 
 /* 传送的buf大小 */
 #define BUF_SIZE 200
+#define __DEBUG_MODE 0
 
 typedef enum {
 	SERSUCCESS,
@@ -25,7 +27,9 @@ typedef enum {
 	SERERRPSWD,
 	SERLISTEND,
 	SERDOWNEND,
+
 	CLISUCCESS,
+	CLIERROR,
 	CLISIGNIN,
 	CLISIGNUP,
 	CLICHPSWD,
@@ -33,6 +37,7 @@ typedef enum {
 	CLIBOOKDOWN,
 	CLIBOOKINFO,
 	CLIBOOKUP,
+	CLIUPEND,
 	CLIEXIT
 }nwbs_opt_t;
 

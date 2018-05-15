@@ -44,6 +44,7 @@ int msg_handler(int sockfd, nwbs_proto_t cli_msg)
 		/* 上传图书 */
 		case CLIBOOKUP:
 			bookup_handler(sockfd, cli_msg);
+			break;
 		/* 退出请求 */
 		case CLIEXIT:
 			exit_handler();
@@ -508,7 +509,135 @@ err3:
 
 int bookup_handler(int sockfd, nwbs_proto_t cli_msg)
 {
+	FILE *bookfp;
+	int ret;
+	nwbs_proto_t ser_msg;
+	MYSQL sql_db;
+	memset(&ser_msg, 0, sizeof(nwbs_proto_t));
 
+	nwbs_book_t book;
+	book = cli_msg.proto_book;
+
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("协议包类型：%d\n", cli_msg.proto_opt);
+	printf("书籍名称：%s\n", cli_msg.proto_book.bookname);
+	printf("书籍作者：%s\n", cli_msg.proto_book.bookauthor);
+	printf("书籍文件名称：%s\n", cli_msg.proto_book.bookfilename);
+	printf("*********************************************\n");
+#endif
+
+    /* 打开该文件 */
+	char bookpath[200] = {0};
+	sprintf(bookpath, "./books/%s", cli_msg.proto_book.bookfilename);
+	bookfp = fopen(bookpath, "w");
+	if (bookfp == NULL) {
+		nwbs_seterrno(ERRFILEOPT);
+		goto err4;
+	}
+
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("书籍保存路径：%s\n", bookpath);
+	printf("*********************************************\n");
+#endif
+
+	/* 打开数据库 */
+	ret = sql_init(&sql_db);
+	if (ret < 0) {
+		nwbs_seterrno(ERRSQLINIT);
+		goto err3;
+	}
+	char sql_com[200];
+	sprintf(sql_com, "select * from book_info where bookname = '%s' and bookauthor = '%s';"
+			, cli_msg.proto_book.bookname
+			, cli_msg.proto_book.bookauthor);
+	ret = mysql_real_query(&sql_db, sql_com, strlen(sql_com));
+	if (ret < 0) {
+		nwbs_seterrno(ERRSQLQUERY);
+		goto err2;
+	}
+
+	MYSQL_RES *sql_res;
+	MYSQL_ROW sql_row;
+	sql_res = mysql_store_result(&sql_db);
+	int num = mysql_num_rows(sql_res);
+
+    if (num == 0) {
+    	/* 如果没有找到重复的则发送服务器已经全部准备好 */
+    	ser_msg.proto_opt = SERSUCCESS;
+    	ret = send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+    	if (ret < 0) {
+    		nwbs_seterrno(ERRSEND);
+    		goto err1;
+    	}
+    } else {
+    	/* 如果找到了则发送数据已经存在 */
+    	ser_msg.proto_opt = SEREXIST;
+    	ret = send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+    	if (ret < 0) {
+    		nwbs_seterrno(ERRSEND);
+    		goto err1;
+    	}
+    }
+
+    while (1) {
+    	/* 循环接收书籍数据 */
+    	memset(&cli_msg, 0, sizeof(nwbs_proto_t));
+    	ret = recv(sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
+    	if (ret < 0) {
+    		nwbs_seterrno(ERRRECV);
+    		goto err1;
+    	}
+
+    	if (cli_msg.proto_opt != CLISUCCESS) {
+    		break;
+    	} else {
+    		ser_msg.proto_opt = SERSUCCESS;
+    		send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+    	}
+    	/* 将数据写入到文件中 */
+    	fwrite(cli_msg.proto_bookdown.bookbuf, sizeof(char), cli_msg.proto_bookdown.bookdatasize , bookfp);
+    }
+
+    switch (cli_msg.proto_opt) {
+    	case CLIUPEND:
+    		bzero(sql_com, sizeof(sql_com));
+    		sprintf(sql_com, "insert into book_info(bookname, bookauthor, bookfilename, bookpath) \
+    				values('%s', '%s', '%s', './books');"
+    				, book.bookname
+    				, book.bookauthor
+    				, book.bookfilename);
+    		ret = mysql_real_query(&sql_db, sql_com, strlen(sql_com));
+    		if (ret < 0) {
+    			unlink(bookpath);
+    			nwbs_seterrno(ERRSQLQUERY);
+    			return -1;
+    		}
+    		nwbs_seterrno(ERRSUCCESS);
+    		break;
+    	case CLIERROR:
+    		nwbs_seterrno(ERRCLIENT);
+    		goto err1;
+    }
+
+    mysql_free_result(sql_res);
+	mysql_close(&sql_db);
+	fclose(bookfp);
+    return 0;
+
+err1:
+	mysql_free_result(sql_res);
+err2:
+	mysql_close(&sql_db);
+err3:
+	fclose(bookfp);
+	unlink(bookpath);
+err4:
+	ser_msg.proto_opt = SERERROR;
+	send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+	printf("发送一个错误包\n");
+	return -1;
 }
 
 /*

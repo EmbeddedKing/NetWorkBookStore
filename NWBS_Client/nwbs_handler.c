@@ -6,8 +6,6 @@
 void com_handler(int sockfd, const char *command)
 {
 	int ret;
-	int cli_booknum;
-	char cli_bookpath[200];
 	nwbs_user_t cli_user;
 	nwbs_chpswd_t cli_chpswd;
 	if (strcmp(command, ".help") == 0) {
@@ -100,14 +98,31 @@ void com_handler(int sockfd, const char *command)
 		}
 	} else if (strcmp(command, ".bookdown") == 0) {
 		if (strcmp(cli_curuser.signinname, "Guest")) {
+			int cli_booknum;
+			char cli_bookpath[200];
+			nwbs_book_t book;
+			char scan[10];
+			memset(&book, 0, sizeof(nwbs_book_t));
 			bzero(cli_bookpath, sizeof(cli_bookpath));
 			printf("/----------------------------\n");
 			printf("|---请输入要下载的图书编号：");
 			scanf("%d", &cli_booknum);
 			getchar();
-			printf("|---请输入要保存的路径：");
-			fgets(cli_bookpath, sizeof(cli_bookpath), stdin);
-			cli_bookpath[strlen(cli_bookpath) - 1] = '\0';
+			book.booknum = cli_booknum;
+			bookinfo_handler(sockfd, &book);
+			bzero(cli_bookpath, sizeof(cli_bookpath));
+			sprintf(cli_bookpath, "%s/books/%s", getcwd(cli_bookpath, sizeof(cli_bookpath)), book.bookfilename);
+			printf("|---默认保存路径：%s\n", cli_bookpath);
+			printf("|---是否保存在该路径？<Y/N>：");
+			fgets(scan, sizeof(scan), stdin);
+			if (scan[0] != 'Y' && scan[0] != 'y') {
+				printf("|---请输入要保存的路径：");
+				bzero(cli_bookpath, sizeof(cli_bookpath));
+				fgets(cli_bookpath, sizeof(cli_bookpath), stdin);
+				cli_bookpath[strlen(cli_bookpath) - 1] = '\0';
+			} else {
+				mkdir("./books", 0777);
+			}
 			printf("|----------------------------\n");
 			ret = bookdown_handler(sockfd, cli_booknum, cli_bookpath);
 			while (nwbs_geterrno() != SERSUCCESS);
@@ -120,7 +135,34 @@ void com_handler(int sockfd, const char *command)
 			printf("当前为游客身份，请登录账号\n");
 		}
 	} else if (strcmp(command, ".bookup") == 0) {
-		bookup_handler(sockfd);
+		if (!strcmp(cli_curuser.signinname, "admin")) {
+			nwbs_book_t cli_book;
+			memset(&cli_book, 0, sizeof(nwbs_book_t));
+			char cli_bookpath[200] = {0};
+			printf("/----------------------------\n");
+			printf("|---要上传的书籍名：");
+			fgets(cli_book.bookname, sizeof(cli_book.bookname), stdin);
+			cli_book.bookname[strlen(cli_book.bookname) - 1] = '\0';
+			printf("|---要上传的书籍作家：");
+			fgets(cli_book.bookauthor, sizeof(cli_book.bookauthor), stdin);
+			cli_book.bookauthor[strlen(cli_book.bookauthor) - 1] = '\0';
+			printf("|---要上传的书籍所在文件夹：");
+			fgets(cli_bookpath, sizeof(cli_bookpath), stdin);
+			cli_bookpath[strlen(cli_bookpath) - 1] = '\0';
+			printf("|---要上传的书籍文件名：");
+			fgets(cli_book.bookfilename, sizeof(cli_book.bookfilename), stdin);
+			cli_book.bookfilename[strlen(cli_book.bookfilename) - 1] = '\0';
+			printf("|----------------------------\n");
+			ret = bookup_handler(sockfd, cli_book, cli_bookpath);
+			while (nwbs_geterrno() != ERRSUCCESS);
+			if (ret < 0) {
+				printf("文件上传失败\n");
+			} else {
+				printf("文件上传成功\n");
+			}
+		} else {
+			printf("当前账户无此权限\n");
+		}
 	} else if (strcmp(command, ".bookinfo") == 0) {
 		if (strcmp(cli_curuser.signinname, "Guest")) {
 			nwbs_book_t book;
@@ -440,6 +482,7 @@ int bookinfo_handler(int sockfd, nwbs_book_t *book)
 			nwbs_seterrno(ERRBKNOEXIST);
 			return -1;
 	}
+
 	return 0;
 }
 
@@ -507,28 +550,117 @@ err1:
 	return -1;
 }
 
-int bookup_handler(int sockfd)
+int bookup_handler(int sockfd, nwbs_book_t book, const char *bookdirpath)
 {
 	int ret;
+	FILE *bookfp;
+	char bookpath[200] = {0};
+	int filesize = 0;
 	nwbs_proto_t cli_msg, ser_msg;
 	memset(&cli_msg, 0, sizeof(nwbs_proto_t));
 	memset(&ser_msg, 0, sizeof(nwbs_proto_t));
 
-	/* 发送请求 */
-	cli_msg.proto_opt = CLIBOOKUP;
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("要上传的书籍文件名：%s\n", book.bookname);
+	printf("要上传的书籍作家：%s\n", book.bookauthor);
+	printf("要上传的书籍文件名：%s\n", book.bookfilename);
+	printf("要上传的书籍所在文件夹：%s\n", bookdirpath);
+	printf("*********************************************\n");
+#endif
+
+	sprintf(bookpath, "%s/%s", bookdirpath, book.bookfilename);
+
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("文件所在路径：%s\n", bookpath);
+	printf("*********************************************\n");
+#endif
+
+	bookfp = fopen(bookpath, "r");
+	if (bookfp == NULL) {
+		nwbs_seterrno(ERRFILEOPT);
+		goto err3;
+	}
+
+	/* 发送请求，并使服务器进行处理 */
+	cli_msg.proto_opt  = CLIBOOKUP;
+	cli_msg.proto_book = book;
+
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("协议包类型：%d\n", cli_msg.proto_opt);
+	printf("*********************************************\n");
+#endif
+
 	ret = send(sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
 	if (ret < 0) {
 		nwbs_seterrno(ERRSEND);
 		goto err1;
 	}
 
+	/* 等待服务器响应 */
 	ret = recv(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
 	if (ret < 0) {
 		nwbs_seterrno(ERRRECV);
 		goto err1;
 	}
 
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("协议包类型：%d", ser_msg.proto_opt);
+	printf("*********************************************\n");
+#endif
+
+
+	/* 解析服务器发过来的命令 */
+	switch (ser_msg.proto_opt) {
+		case SERSUCCESS:
+			break;
+		case SERERROR:
+			nwbs_seterrno(ERRSERVER);
+			goto err3;
+		case SEREXIST:
+			nwbs_seterrno(ERRBKEXIST);
+			goto err3;
+		default:
+			goto err3;
+	}
+
+	while (1) {
+		/* 提取书籍数据 */
+		memset(&cli_msg, 0, sizeof(nwbs_proto_t));
+		cli_msg.proto_opt = CLISUCCESS;
+		cli_msg.proto_bookdown.bookdatasize = fread(cli_msg.proto_bookdown.bookbuf, 1, sizeof(cli_msg.proto_bookdown.bookbuf), bookfp);
+		if (cli_msg.proto_bookdown.bookdatasize < 0) {
+			nwbs_seterrno(ERRFILEOPT);
+			goto err1;
+		} else if (cli_msg.proto_bookdown.bookdatasize == 0) {
+			break;
+		}
+		/* 发送数据 */
+		ret = send(sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
+		if (ret < 0) {
+			nwbs_seterrno(ERRSEND);
+			goto err1;
+		}
+		recv(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+	}
+
+	cli_msg.proto_opt = CLIUPEND;
+	ret = send(sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
+	if (ret < 0) {
+		nwbs_seterrno(ERRSEND);
+		goto err1;
+	}
+	fclose(bookfp);
 	return 0;
+
 err1:
+	cli_msg.proto_opt = CLIERROR;
+	send(sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
+err2:
+	fclose(bookfp);
+err3:
 	return -1;
 }

@@ -12,7 +12,9 @@
 #define ERRSQLINIT     1  /* 数据库初始化失败 */
 #define ERRSQLQUERY    2  /* 数据库命令执行失败 */
 #define ERRSEND        3  /* 发送失败 */
-#define ERRFILEOPT     4  /* 文件操作失败 */
+#define ERRRECV        4  /* 接收失败 */
+#define ERRFILEOPT     5  /* 文件操作失败 */
+#define ERRCLIENT      6  /* 客户端出现异常 */
 
 /* 错误码对应的错误函数 */
 typedef struct _nwbs_errhandler {

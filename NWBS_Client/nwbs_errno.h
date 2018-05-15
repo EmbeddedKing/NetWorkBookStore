@@ -8,17 +8,19 @@
 #define ERRWARRING     1
 
 /* errno define */
-#define ERRSUCCESS     0
-#define ERRSEND        1
-#define ERRRECV        2
-#define ERRSERVER      3
-#define ERRBREAK       4
-#define ERRACCEXIST    5
-#define ERRACCNOEXIST  6
-#define ERRPASSWD      7
-#define ERROLDPSWD     8
-#define ERRFILEOPT     9
-#define ERRBKNOEXIST   10
+#define ERRSUCCESS     0   /* 成功 */
+#define ERRSEND        1   /* 发送失败 */
+#define ERRRECV        2   /* 接收失败 */
+#define ERRSERVER      3   /* 服务器发生错误 */
+#define ERRBREAK       4   /* 与服务器断开连接 */
+#define ERRACCEXIST    5   /* 账户已存在 */
+#define ERRACCNOEXIST  6   /* 账户不存在 */
+#define ERRPASSWD      7   /* 密码错误 */
+#define ERROLDPSWD     8   /* 旧密码错误 */
+#define ERRFILEOPT     9   /* 文件操作失败 */
+#define ERRBKEXIST     10  /* 书籍已存在 */
+#define ERRBKNOEXIST   11  /* 书籍不存在 */
+
 
 typedef struct _nwbs_errhandler {
 	void (*errsuccess_handler)(int errorno);
@@ -30,6 +32,9 @@ typedef struct _nwbs_errhandler {
 	void (*erraccnoexist_handler)(int errorno);
 	void (*errpasswd_handler)(int errorno);
 	void (*erroldpswd_handler)(int errorno);
+	void (*errbkexist_handler)(int errorno);
+	void (*errbknoexist_handler)(int errorno);
+	void (*errfileopt_handler)(int errorno);
 }nwbs_errhandler_t;
 
 int nwbs_errno;

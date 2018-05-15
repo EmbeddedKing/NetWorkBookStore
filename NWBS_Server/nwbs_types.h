@@ -36,7 +36,9 @@ typedef enum {
 	SERERRPSWD,
 	SERLISTEND,
 	SERDOWNEND,
+
 	CLISUCCESS,
+	CLIERROR,
 	CLISIGNIN,
 	CLISIGNUP,
 	CLICHPSWD,
@@ -44,8 +46,12 @@ typedef enum {
 	CLIBOOKDOWN,
 	CLIBOOKINFO,
 	CLIBOOKUP,
+	CLIUPEND,
 	CLIEXIT
 }nwbs_opt_t;
+
+
+#define __DEBUG_MODE 0
 
 /* 该结构体用来装数据库信息 */
 typedef struct _nwbs_dbinfo {
@@ -84,7 +90,10 @@ typedef struct _nwbs_bookdown {
 	char bookbuf[BUF_SIZE];
 }nwbs_bookdown_t;
 
-/* 该结构体用来传输协议 */
+/**
+ * 协议包结构体，本来想用共用体来缩减包的大小，
+ * 但由于每次使用包的名字都变成一大串看起来很蠢所以不用了
+ */
 typedef struct _nwbs_protocol {
 	nwbs_opt_t proto_opt;
 	nwbs_user_t proto_user;

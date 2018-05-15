@@ -14,6 +14,11 @@ userpasswd CHAR(20) NOT NULL,
 PRIMARY KEY (useraccount)
 )DEFAULT CHARSET=utf8;
 
+/* 修改auto_increment自增长的值 */
+alter table book_info auto_increment = 1;
+
+/*  */
+
 /* 插入记录 */
 insert into book_info values(1, "红玫瑰与白玫瑰", "张爱玲", "books/hmgybmg.txt");
 
