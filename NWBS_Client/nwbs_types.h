@@ -38,6 +38,7 @@ typedef enum {
 	CLIBOOKINFO,
 	CLIBOOKUP,
 	CLIUPEND,
+	CLIBOOKDEL,
 	CLIEXIT
 }nwbs_opt_t;
 

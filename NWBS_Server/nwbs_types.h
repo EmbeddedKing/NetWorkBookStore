@@ -14,6 +14,7 @@
 #include <pthread.h>
 
 #define BUF_SIZE         200
+#define __DEBUG_MODE     0
 
 /* book_info表字段的顺序 */
 #define DBBOOKNUM        0
@@ -47,11 +48,10 @@ typedef enum {
 	CLIBOOKINFO,
 	CLIBOOKUP,
 	CLIUPEND,
+	CLIBOOKDEL,
 	CLIEXIT
 }nwbs_opt_t;
 
-
-#define __DEBUG_MODE 0
 
 /* 该结构体用来装数据库信息 */
 typedef struct _nwbs_dbinfo {

@@ -23,6 +23,8 @@ int bookdown_handler(int sockfd, nwbs_proto_t cli_msg);
 int bookinfo_handler(int sockfd, nwbs_proto_t cli_msg);
 /* 处理管理员上传图书的函数 */
 int bookup_handler(int sockfd, nwbs_proto_t cli_msg);
+/* 处理管理员删除图书的函数 */
+int bookdel_handler(int sockfd, nwbs_proto_t cli_msg);
 /* 处理客户端协议的函数 */
 int exit_handler();
 

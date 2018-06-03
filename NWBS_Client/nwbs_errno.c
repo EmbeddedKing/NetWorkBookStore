@@ -88,6 +88,9 @@ void nwbs_errdefaulthandler(int errorno)
 		case ERRBKEXIST:
 			printf("%s", nwbs_error());
 			break;
+		case ERRBKNOEXIST:
+			printf("%s", nwbs_error());
+			break;
 		case ERRFILEOPT:
 			printf("%s", nwbs_error());
 			break;

@@ -31,7 +31,9 @@ int  booklist_handler(int sockfd);
 int  bookdown_handler(int sockfd, int booknum, const char *bookpath);
 /* 上传图书处理 */
 int  bookup_handler(int sockfd, nwbs_book_t book, const char *bookpath);
-/* 得到数据结构体 */
+/* 获取图书信息 */
 int  bookinfo_handler(int sockfd, nwbs_book_t *book);
+/* 删除图书 */
+int bookdel_handler(int sockfd, int booknum);
 
 #endif

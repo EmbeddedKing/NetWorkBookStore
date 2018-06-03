@@ -45,6 +45,9 @@ int msg_handler(int sockfd, nwbs_proto_t cli_msg)
 		case CLIBOOKUP:
 			bookup_handler(sockfd, cli_msg);
 			break;
+		case CLIBOOKDEL:
+			bookdel_handler(sockfd, cli_msg);
+			break;
 		/* 退出请求 */
 		case CLIEXIT:
 			exit_handler();
@@ -572,13 +575,14 @@ int bookup_handler(int sockfd, nwbs_proto_t cli_msg)
     		goto err1;
     	}
     } else {
-    	/* 如果找到了则发送数据已经存在 */
+    	/* 如果找到了则发送数据已经存在并返回 */
     	ser_msg.proto_opt = SEREXIST;
     	ret = send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
     	if (ret < 0) {
     		nwbs_seterrno(ERRSEND);
     		goto err1;
     	}
+    	return 0;
     }
 
     while (1) {
@@ -636,7 +640,92 @@ err3:
 err4:
 	ser_msg.proto_opt = SERERROR;
 	send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
-	printf("发送一个错误包\n");
+	return -1;
+}
+
+int bookdel_handler(int sockfd, nwbs_proto_t cli_msg)
+{
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("要删除的图书编号为：%d\n", cli_msg.proto_book.booknum);
+	printf("*********************************************\n");
+#endif
+	int ret;
+	nwbs_proto_t ser_msg;
+	MYSQL sql_db;
+
+	ret = sql_init(&sql_db);
+	if (ret < 0) {
+		nwbs_seterrno(ERRSQLINIT);
+		goto err3;
+	}
+
+	char sql_com[200] = {0};
+	MYSQL_RES *sql_res;
+	MYSQL_ROW sql_row;
+	sprintf(sql_com, "select * from book_info where booknum = %d;"
+			, cli_msg.proto_book.booknum);
+	ret = mysql_real_query(&sql_db, sql_com, strlen(sql_com));
+	if (ret < 0) {
+		nwbs_seterrno(ERRSQLQUERY);
+		goto err2;
+	}
+
+	sql_res = mysql_store_result(&sql_db);
+	int num = mysql_num_rows(sql_res);
+	if (num) {
+		/* 如果找到图书，则将图书做删除操作 */
+		bzero(sql_com, sizeof(sql_com));
+		sprintf(sql_com, "delete from book_info where booknum = %d;"
+				, cli_msg.proto_book.booknum);
+		sql_row = mysql_fetch_row(sql_res);
+		/* 删除对应的本地文件 */
+		char bookpath[200] = {0};
+		sprintf(bookpath, "%s/%s", sql_row[DBBOOKPATH], sql_row[DBBOOKFILENAME]);
+		unlink(bookpath);
+		ret = mysql_real_query(&sql_db, sql_com, strlen(sql_com));
+		if (ret < 0) {
+			nwbs_seterrno(ERRSQLQUERY);
+			goto err1;
+		}
+		memset(&ser_msg, 0, sizeof(nwbs_proto_t));
+		ser_msg.proto_opt = SERSUCCESS;
+		ret = send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+		if (ret < 0) {
+			nwbs_seterrno(ERRSEND);
+			goto err1;
+		}
+		//如果是删除的最后一本图书，则将自增改为1
+		if (num == 1) {
+			bzero(sql_com, sizeof(sql_com));
+			sprintf(sql_com, "alter table book_info auto_increment = 1;");
+			ret = mysql_real_query(&sql_db, sql_com, strlen(sql_com));
+			if (ret < 0) {
+				nwbs_seterrno(ERRSQLQUERY);
+				goto err1;
+			}
+		}
+	} else {
+		memset(&ser_msg, 0, sizeof(nwbs_proto_t));
+		ser_msg.proto_opt = SERNOEXIST;
+		ret = send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+		if (ret < 0) {
+			nwbs_seterrno(ERRSEND);
+			goto err1;
+		}
+	}
+
+	mysql_close(&sql_db);
+	mysql_free_result(sql_res);
+	return 0;
+
+err1:
+	mysql_free_result(sql_res);
+err2:
+	mysql_close(&sql_db);
+err3:
+	ser_msg.proto_opt = SERERROR;
+	send(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
 	return -1;
 }
 
@@ -645,4 +734,5 @@ err4:
  */
 int exit_handler()
 {
+
 }

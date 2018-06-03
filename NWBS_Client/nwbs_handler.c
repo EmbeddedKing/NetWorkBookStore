@@ -1,7 +1,9 @@
 #include "nwbs_handler.h"
 
-/*
+/**
  * 该函数用来处理用户输入的命令
+ * @param sockfd  套接字描述符
+ * @param command 用户输入的命令
  */
 void com_handler(int sockfd, const char *command)
 {
@@ -163,6 +165,25 @@ void com_handler(int sockfd, const char *command)
 		} else {
 			printf("当前账户无此权限\n");
 		}
+	} else if (strcmp(command, ".bookdel") == 0) {
+		if (strcmp(cli_curuser.signinname, "admin") == 0) {
+			printf("删除图书\n");
+			int booknum;
+			printf("/----------------------------\n");
+			printf("|---请选择要删除的图书编号：");
+			scanf("%d", &booknum);
+			getchar();
+			printf("|----------------------------\n");
+			ret = bookdel_handler(sockfd, booknum);
+			while (nwbs_geterrno() != ERRSUCCESS);
+			if (ret) {
+				printf("文件删除失败\n");
+			} else {
+				printf("文件删除成功\n");
+			}
+		} else {
+			printf("当前账户无此权限\n");
+		}
 	} else if (strcmp(command, ".bookinfo") == 0) {
 		if (strcmp(cli_curuser.signinname, "Guest")) {
 			nwbs_book_t book;
@@ -193,7 +214,7 @@ void com_handler(int sockfd, const char *command)
 	}
 }
 
-/*
+/**
  * 该函数用来打印帮助手册
  */
 void guesthelp_handler()
@@ -207,6 +228,9 @@ void guesthelp_handler()
 	printf("|----------------------------\n");
 }
 
+/**
+ * 该函数用来打印用户帮助手册
+ */
 void userhelp_handler()
 {
 	printf("/----------------------------\n");
@@ -223,6 +247,9 @@ void userhelp_handler()
 	printf("|----------------------------\n");
 }
 
+/**
+ * 该函数用来打印管理员帮助手册
+ */
 void adminhelp_handler()
 {
 	printf("/----------------------------\n");
@@ -241,13 +268,17 @@ void adminhelp_handler()
 	printf("|----------------------------\n");
 }
 
+/**
+ * 该函数用来退出
+ * @param sockfd 套接字描述符
+ */
 void exit_handler(int sockfd)
 {
 	exit(0);
 }
 
 
-/*
+/**
  * 该函数用来注册一个账号
  * 该函数会产生3个错误码
  * ERRSEND:发送失败
@@ -608,7 +639,7 @@ int bookup_handler(int sockfd, nwbs_book_t book, const char *bookdirpath)
 
 #if __DEBUG_MODE
 	printf("\n*********************************************\n");
-	printf("协议包类型：%d", ser_msg.proto_opt);
+	printf("协议包类型：%d\n", ser_msg.proto_opt);
 	printf("*********************************************\n");
 #endif
 
@@ -663,4 +694,43 @@ err2:
 	fclose(bookfp);
 err3:
 	return -1;
+}
+
+int bookdel_handler(int sockfd, int booknum)
+{
+#if __DEBUG_MODE
+	printf("\n*********************************************\n");
+	printf("要删除的图书编号：%d\n", booknum);
+	printf("*********************************************\n");
+#endif
+
+	int ret;
+	nwbs_proto_t cli_msg, ser_msg;
+	memset(&cli_msg, 0, sizeof(nwbs_proto_t));
+	cli_msg.proto_opt = CLIBOOKDEL;
+	cli_msg.proto_book.booknum = booknum;
+	ret = send(sockfd, &cli_msg, sizeof(nwbs_proto_t), 0);
+	if (ret < 0) {
+		nwbs_seterrno(ERRSEND);
+		return -1;
+	}
+
+	memset(&ser_msg, 0, sizeof(nwbs_proto_t));
+	ret = recv(sockfd, &ser_msg, sizeof(nwbs_proto_t), 0);
+	if (ret < 0) {
+		nwbs_seterrno(ERRRECV);
+		return -1;
+	}
+
+	switch (ser_msg.proto_opt){
+		case SERSUCCESS:
+			nwbs_seterrno(ERRSUCCESS);
+			return 0;
+		case SERNOEXIST:
+			nwbs_seterrno(ERRBKNOEXIST);
+			return -1;
+		case SERERROR:
+			nwbs_seterrno(ERRSERVER);
+			return -1;
+	}
 }
