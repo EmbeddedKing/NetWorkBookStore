@@ -24,10 +24,77 @@
 >     并且会造成大量的垃圾代码，而errno的处理是在errno的值被改变后，不占用主函数时间，一切的处理都在线程中执行
 >     高效执行代码的同时解决了代码冗余的问题。
 
+## install
+### 安装mysql数据库
+>     sudo apt-get install mysql-client
+>     sudo apt-get install mysql-server
+>     sudo apt-get install libmysql-dev
+
+### 建立数据库和表
+>     create database NWBS;
+>     use NWBS;
+
+>     create table book_info(
+>     booknum INT AUTO_INCREMENT,
+>     bookname CHAR(100) NOT NULL,
+>     bookauthor CHAR(50) NOT NULL,
+>     bookfilename CHAR(100) NOT NULL,
+>     bookpath CHAR(200) NOT NULL,
+>     PRIMARY KEY (booknum)
+>     )DEFAULT CHARSET=utf8;
+
+>     create table user_info(
+>     username CHAR(20) NOT NULL,
+>     useraccount CHAR(20) NOT NULL,
+>     userpasswd CHAR(20) NOT NULL,
+>     PRIMARY KEY (useraccount)
+>     )DEFAULT CHARSET=utf8;
+
+### 编译源文件和运行
+>     make
+>     ./nwbs_server <ip> <port>
+>     ./nwbs_client <ip> <port>
+
 ## 图片展示
+>     开启服务器，服务器不会有任何的print
 ![Image text](./Image/start_server.png)
-
-
+>     开启客户端，进入命令行
+![Image text](./Image/start_client.png)
+>     游客帮助
+![Image text](./Image/guest_help.png)
+>     注册账号成功
+![Image text](./Image/signup.png)
+>     查看数据库用户信息表
+![Image text](./Image/select_userinfo.png)
+>     登录账号，密码不回显
+![Image text](./Image/signin_user.png)
+>     修改密码
+![Image text](./Image/chpswd.png)
+>     用户帮助
+![Image text](./Image/user_help.png)
+>     权限不足
+![Image text](./Image/permission_denied.png)
+>     管理员登录
+![Image text](./Image/signin_admin.png)
+>     管理员帮助
+![Image text](./Image/admin_help.png)
+>     管理员上传图书
+![Image text](./Image/bookup.png)
+>     查看数据库图书信息表
+![Image text](./Image/select_bookinfo.png)
+>     获取图片列表
+![Image text](./Image/booklist.png)
+>     下载图书
+![Image text](./Image/bookdown.png)
+>     查看下载的图书
+![Image text](./Image/book1.png)
+![Image text](./Image/book2.png)
+>     删除图书
+![Image text](./Image/bookdel.png)
+>     查看文件列表，可以看到已经删除
+![Image text](./Image/booklist1.png)
+>     退出
+![Image text](./Image/exit.png)
 
 ## 2018.5.11更
 >     该系统我已经写了四天了，较前几个系统吧来说这个系统更接近于linux的编程风格
